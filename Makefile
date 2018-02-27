@@ -10,21 +10,21 @@
 # It's still possible to build, tag and push images manually. Just use:
 #	make release-all
 
-IMAGE_NAME := fluent/fluentd-kubernetes
+IMAGE_NAME := nehalsyed/fluentd-kubernetes
 ALL_IMAGES := \
-	v0.12/alpine-elasticsearch:v0.12.33-elasticsearch,v0.12-elasticsearch,stable-elasticsearch,elasticsearch \
-	v0.12/alpine-loggly:v0.12.33-loggly,v0.12-loggly,stable-loggly,loggly \
-	v0.12/alpine-logentries:v0.12.33-logentries,v0.12-logentries,stable-logentries,logentries \
-	v0.12/alpine-cloudwatch:v0.12.33-cloudwatch,v0.12-cloudwatch,stable-cloudwatch,cloudwatch \
-	v0.12/alpine-s3:v0.12.33-s3,v0.12-s3,stable-s3,s3 \
-	v0.12/alpine-papertrail:v0.12.33-papertrail,v0.12-papertrail,stable-papertrail,papertrail \
-	v0.12/debian-elasticsearch:v0.12.33-debian-elasticsearch,v0.12-debian-elasticsearch,debian-elasticsearch \
-	v0.12/debian-loggly:v0.12.33-debian-loggly,v0.12-debian-loggly,debian-loggly \
-	v0.12/debian-logentries:v0.12.33-debian-logentries,v0.12-debian-logentries,debian-logentries \
-	v0.12/debian-cloudwatch:v0.12.33-debian-cloudwatch,v0.12-debian-cloudwatch,debian-cloudwatch \
-	v0.12/debian-stackdriver:v0.12.33-debian-stackdriver,v0.12-debian-stackdriver,debian-stackdriver \
-	v0.12/debian-s3:v0.12.33-debian-s3,v0.12-debian-s3,debian-s3 \
-	v0.12/debian-papertrail:v0.12.33-debian-papertrail,v0.12-debian-papertrail,debian-papertrail
+	v0.12/alpine-elasticsearch:v0.12.33-elasticsearch,v0.12-elasticsearch,stable-elasticsearch,aws-elasticsearch \
+#	v0.12/alpine-loggly:v0.12.33-loggly,v0.12-loggly,stable-loggly,loggly \
+#	v0.12/alpine-logentries:v0.12.33-logentries,v0.12-logentries,stable-logentries,logentries \
+#	v0.12/alpine-cloudwatch:v0.12.33-cloudwatch,v0.12-cloudwatch,stable-cloudwatch,cloudwatch \
+#	v0.12/alpine-s3:v0.12.33-s3,v0.12-s3,stable-s3,s3 \
+#	v0.12/alpine-papertrail:v0.12.33-papertrail,v0.12-papertrail,stable-papertrail,papertrail \
+#	v0.12/debian-elasticsearch:v0.12.33-debian-elasticsearch,v0.12-debian-elasticsearch,debian-elasticsearch \
+#	v0.12/debian-loggly:v0.12.33-debian-loggly,v0.12-debian-loggly,debian-loggly \
+#	v0.12/debian-logentries:v0.12.33-debian-logentries,v0.12-debian-logentries,debian-logentries \
+#	v0.12/debian-cloudwatch:v0.12.33-debian-cloudwatch,v0.12-debian-cloudwatch,debian-cloudwatch \
+#	v0.12/debian-stackdriver:v0.12.33-debian-stackdriver,v0.12-debian-stackdriver,debian-stackdriver \
+#	v0.12/debian-s3:v0.12.33-debian-s3,v0.12-debian-s3,debian-s3 \
+#	v0.12/debian-papertrail:v0.12.33-debian-papertrail,v0.12-debian-papertrail,debian-papertrail
 
 #	<Dockerfile>:<version>,<tag1>,<tag2>,...
 
@@ -168,6 +168,21 @@ fluent.conf:
 			version='$(VERSION)' \
 		/fluent.conf.erb > docker-image/$(DOCKERFILE)/conf/fluent.conf
 
+
+# Generate fluent.agtr.conf from template.
+#
+# Usage:
+#	make fluent.agtr.conf [DOCKERFILE=] [VERSION=]
+
+fluent.agtr.conf:
+	mkdir -p docker-image/$(DOCKERFILE)/conf
+	docker run --rm -i -v $(PWD)/templates/conf/fluent.agtr.conf.erb:/fluent.agtr.conf.erb:ro \
+		ruby:alpine erb -U -T 1 \
+			dockerfile='$(DOCKERFILE)' \
+			version='$(VERSION)' \
+		/fluent.agtr.conf.erb > docker-image/$(DOCKERFILE)/conf/fluent.agtr.conf
+
+
 # Generate kubernetes.conf from template.
 #
 # Usage:
@@ -256,6 +271,21 @@ fluent.conf-all:
 			VERSION=$(word 1,$(subst $(comma), ,\
 			                 $(word 2,$(subst :, ,$(img))))) ; \
 	))
+	
+	
+# Generate fluent.agtr.conf from template for all supported Docker images.
+#
+# Usage:
+#	make fluent.agtr.conf-all
+
+fluent.agtr.conf-all:
+	(set -e ; $(foreach img,$(ALL_IMAGES), \
+		make fluent.agtr.conf \
+			DOCKERFILE=$(word 1,$(subst :, ,$(img))) \
+			VERSION=$(word 1,$(subst $(comma), ,\
+			                 $(word 2,$(subst :, ,$(img))))) ; \
+	))
+	
 
 # Generate kubernetes.conf from template for all supported Docker images.
 #
@@ -300,6 +330,7 @@ post-push-hook-all:
         dockerfile dockerfile-all \
         entrypoint.sh entrypoint.sh-all \
         fluent.conf fluent.conf-all \
+#        fluent.agtr.conf fluent.agtr.conf-all \
         kubernetes.conf kubernetes.conf-all\
         plugins plugins-all \
         post-push-hook post-push-hook-all
