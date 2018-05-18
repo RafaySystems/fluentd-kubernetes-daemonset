@@ -18,7 +18,11 @@ RUN set -ex \
     && gem install fluent-plugin-record-reformer \
     && gem install fluent-plugin-elasticsearch \
     && gem install fluent-plugin-aws-elasticsearch-service \
+    && gem install fluent-plugin-kafka \
+    && gem install fluent-plugin-prometheus \            
+    && gem install fluent-plugin-aws-elasticsearch-service \
     && gem install fluent-plugin-kubernetes_metadata_filter \
+    && gem install fluent-plugin-zookeeper \
     && apk del .build-deps \
     && gem sources --clear-all \
     && rm -rf /tmp/* /var/tmp/* /usr/lib/ruby/gems/*/cache/*.gem
